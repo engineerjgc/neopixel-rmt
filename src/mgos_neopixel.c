@@ -21,7 +21,6 @@
 #include "mgos_neopixel.h"
 
 #include "common/cs_dbg.h"
-#include "mgos_bitbang.h"
 #include "mgos_gpio.h"
 #include "mgos_system.h"
 
@@ -29,19 +28,26 @@
 
 struct mgos_neopixel {
   int pin;
+  int rmtch;
   int num_pixels;
   enum mgos_neopixel_order order;
   uint8_t *data;
 };
 
-struct mgos_neopixel *mgos_neopixel_create(int pin, int num_pixels,
+struct mgos_neopixel *mgos_neopixel_create(int pin, int rmtch, int num_pixels,
                                            enum mgos_neopixel_order order) {
   mgos_gpio_set_mode(pin, MGOS_GPIO_MODE_OUTPUT);
   /* Keep in reset */
   mgos_gpio_write(pin, 0);
 
+  if (rmtch) {
+    LOG(LL_ERROR, ("Wrong order: %d", np->order));
+    return NULL;
+  }
+
   struct mgos_neopixel *np = calloc(1, sizeof(*np));
   np->pin = pin;
+  np->rmtch = rmtch;
   np->num_pixels = num_pixels;
   np->order = order;
   np->data = malloc(num_pixels * NUM_CHANNELS);
@@ -83,10 +89,10 @@ void mgos_neopixel_clear(struct mgos_neopixel *np) {
 void mgos_neopixel_show(struct mgos_neopixel *np) {
   mgos_gpio_write(np->pin, 0);
   mgos_usleep(300);
-#if MGOS_ENABLE_BITBANG
+  # -- DO THE MAGIC HERE --
   mgos_bitbang_write_bits(np->pin, MGOS_DELAY_100NSEC, 3, 8, 8, 3, np->data,
                           np->num_pixels * NUM_CHANNELS);
-#endif
+  # ====
   mgos_gpio_write(np->pin, 0);
   mgos_usleep(300);
   mgos_gpio_write(np->pin, 1);
