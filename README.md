@@ -1,1 +1,1 @@
-# Neopixel driver for Mongoose OS
+# Neopixel driver for Mongoose OS using ESP32 RMT Module
